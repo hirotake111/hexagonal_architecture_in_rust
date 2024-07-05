@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 thiserror = "1.0.61"
 uuid = "1.9.1"
+sqlx = { version = "0.7", features = [ "runtime-tokio", "sqlite" ] }
+anyhow = "1.0.86"
