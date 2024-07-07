@@ -25,6 +25,18 @@ impl Author {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AuthorName(String);
 
+impl AuthorName {
+    pub fn val(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for AuthorName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Clone, Debug, Error)]
 #[error("author name cannot be empty")]
 pub struct AuthorNameEmptyError;
@@ -45,7 +57,11 @@ pub struct CreateAuthorRequest {
     name: AuthorName,
 }
 
-impl CreateAuthorRequest {}
+impl CreateAuthorRequest {
+    pub fn name(&self) -> &AuthorName {
+        &self.name
+    }
+}
 
 #[derive(Debug, Error)]
 pub enum CreateAuthorError {

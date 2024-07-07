@@ -1,12 +1,22 @@
 [package]
+edition = "2021"
 name = "hexagonal_architecture_in_rust"
 version = "0.1.0"
-edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-thiserror = "1.0.61"
-uuid = "1.9.1"
-sqlx = { version = "0.7", features = [ "runtime-tokio", "sqlite" ] }
 anyhow = "1.0.86"
+dotenvy = "0.15.7"
+sqlx = {version = "0.7", features = ["runtime-tokio", "postgres", "uuid"]}
+thiserror = "1.0.61"
+tokio = {version = "1.38.0", features = ["full"]}
+tracing-subscriber = {version = "0.3.18", features = ["env-filter"]}
+
+[dependencies.uuid]
+features = [
+  "v4", # Lets you generate random UUIDs
+  "fast-rng", # Use a faster (but still sufficiently random) RNG
+  "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+version = "1.9.1"

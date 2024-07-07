@@ -1,0 +1,12 @@
+version: "3.8"  # Adjust if using a different Docker Compose version
+
+services:
+  db:
+    container_name: db
+    image: postgres:alpine  # Use a specific version if needed (e.g., postgres:14)
+    environment:
+      - POSTGRES_USER=postgres # Username for the database
+      - POSTGRES_PASSWORD=supersecret # Password for the database
+    ports:
+      - "5432:5432" # Map port 5432 on the host machine to port 5432 in the container
+
