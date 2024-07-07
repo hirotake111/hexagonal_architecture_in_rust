@@ -52,17 +52,6 @@ impl AuthorName {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CreateAuthorRequest {
-    name: AuthorName,
-}
-
-impl CreateAuthorRequest {
-    pub fn name(&self) -> &AuthorName {
-        &self.name
-    }
-}
-
 #[derive(Debug, Error)]
 pub enum CreateAuthorError {
     #[error("author with name {name} already exists")]
@@ -70,4 +59,43 @@ pub enum CreateAuthorError {
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
     // to be extended as new error scenarios are introduced
+}
+
+pub struct CreateAuthorRequest {
+    name: AuthorName,
+}
+
+impl CreateAuthorRequest {
+    pub fn new(name: AuthorName) -> Self {
+        Self { name }
+    }
+
+    pub fn name(&self) -> &AuthorName {
+        &self.name
+    }
+}
+
+pub enum ApiError {
+    InternalServerError(String),
+    UnprocessableEntity(String),
+}
+
+impl From<CreateAuthorError> for ApiError {
+    fn from(e: CreateAuthorError) -> Self {
+        match e {
+            CreateAuthorError::Duplicate { name } => {
+                Self::UnprocessableEntity(format!("author with name {} already exists", name))
+            }
+            CreateAuthorError::Unknown(cause) => {
+                tracing::error!("{:?}\n{}", cause, cause.backtrace());
+                Self::InternalServerError("Internal server error".to_string())
+            }
+        }
+    }
+}
+
+impl From<AuthorNameEmptyError> for ApiError {
+    fn from(_: AuthorNameEmptyError) -> Self {
+        ApiError::UnprocessableEntity("author name cannot be empty".to_string())
+    }
 }

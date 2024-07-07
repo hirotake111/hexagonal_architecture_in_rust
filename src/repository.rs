@@ -68,7 +68,7 @@ fn is_unique_constraint_violation(err: &sqlx::Error) -> bool {
             return code == UNIQUE_CONSTRAINT_VIOLATION_CODE;
         }
     }
-    return false;
+    false
 }
 
 async fn save_author(
