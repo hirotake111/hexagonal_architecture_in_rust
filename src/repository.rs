@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::domain::{Author, AuthorName, CreateAuthorError, CreateAuthorRequest};
 
 /// `AuthorRepository` represents a store of author data
-pub trait AuthorRepository: Send + Sync + 'static {
+pub trait AuthorRepository: Clone + Send + Sync + 'static {
     /// Persist a new [Author]
     ///
     /// ## Errors
