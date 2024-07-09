@@ -3,7 +3,7 @@ use crate::{
     repository::AuthorRepository,
     state::AppState,
 };
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -33,10 +33,32 @@ impl From<&Author> for CreateAuthorResponseData {
     }
 }
 
-pub struct ApiSuccess<T>((axum::http::StatusCode, T));
-impl<T> ApiSuccess<T> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApiSuccess<T>(axum::http::StatusCode, T);
+impl<T> ApiSuccess<T>
+where
+    T: Serialize,
+{
     pub fn new(code: StatusCode, data: T) -> Self {
-        Self((code, data))
+        Self(code, data)
+    }
+}
+
+impl<T> IntoResponse for ApiSuccess<T>
+where
+    T: Serialize,
+{
+    fn into_response(self) -> axum::response::Response {
+        if let Ok(body) = serde_json::to_string(&self.1) {
+            if let Ok(response) = axum::response::Response::builder()
+                .status(self.0)
+                .header("Content-Type", "application/json")
+                .body(body)
+            {
+                return response.into_response();
+            }
+        }
+        (StatusCode::INTERNAL_SERVER_ERROR, "internal server error").into_response()
     }
 }
 
@@ -62,7 +84,7 @@ mod tests {
     use tokio::sync::Mutex;
 
     use crate::{
-        domain::{Author, CreateAuthorError},
+        domain::{Author, CreateAuthorError, CreateAuthorRequest},
         repository::AuthorRepository,
     };
 
@@ -72,10 +94,10 @@ mod tests {
     }
 
     impl AuthorRepository for MockAuthorRepository {
-        fn create_author(
+        async fn create_author(
             &self,
-            req: &crate::domain::CreateAuthorRequest,
-        ) -> impl std::future::Future<Output = Result<Author, CreateAuthorError>> + Send {
+            _: &CreateAuthorRequest,
+        ) -> Result<Author, CreateAuthorError> {
             let mut guard = self.create_author_result.lock().await;
             let mut result = Err(CreateAuthorError::Unknown(anyhow!("substitute error")));
             mem::swap(guard.deref_mut(), &mut result);

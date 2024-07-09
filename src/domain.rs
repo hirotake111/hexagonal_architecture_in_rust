@@ -1,3 +1,4 @@
+use axum::response::IntoResponse;
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -97,5 +98,11 @@ impl From<CreateAuthorError> for ApiError {
 impl From<AuthorNameEmptyError> for ApiError {
     fn from(_: AuthorNameEmptyError) -> Self {
         ApiError::UnprocessableEntity("author name cannot be empty".to_string())
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> axum::response::Response {
+        todo!()
     }
 }
