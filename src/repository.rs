@@ -60,12 +60,12 @@ impl AuthorRepository for Postgres {
     }
 }
 
-const UNIQUE_CONSTRAINT_VIOLATION_CODE: &str = "2067";
+const POSTGRES_UNIQUE_CONSTRAINT_VIOLATION_CODE: &str = "23505";
 
 fn is_unique_constraint_violation(err: &sqlx::Error) -> bool {
     if let sqlx::Error::Database(db_err) = err {
         if let Some(code) = db_err.code() {
-            return code == UNIQUE_CONSTRAINT_VIOLATION_CODE;
+            return code == POSTGRES_UNIQUE_CONSTRAINT_VIOLATION_CODE;
         }
     }
     false

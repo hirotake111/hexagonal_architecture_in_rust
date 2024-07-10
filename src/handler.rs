@@ -1,6 +1,6 @@
 use crate::{
     domain::{ApiError, Author, AuthorName, AuthorNameEmptyError, CreateAuthorRequest},
-    repository::AuthorRepository,
+    service::AuthorService,
     state::AppState,
 };
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
@@ -62,13 +62,13 @@ where
     }
 }
 
-pub async fn crate_author<AR: AuthorRepository>(
-    State(state): State<AppState<AR>>,
+pub async fn crate_author<AS: AuthorService>(
+    State(state): State<AppState<AS>>,
     Json(body): Json<CreateAuthorHttpRequestBody>,
 ) -> Result<ApiSuccess<CreateAuthorResponseData>, ApiError> {
     let domain_req = body.try_into_domain()?;
     state
-        .author_repo
+        .author_service
         .create_author(&domain_req)
         .await
         .map_err(ApiError::from)

@@ -1,4 +1,4 @@
-use axum::response::IntoResponse;
+use axum::{http::StatusCode, response::IntoResponse};
 use thiserror::Error;
 use uuid::Uuid;
 
@@ -103,6 +103,13 @@ impl From<AuthorNameEmptyError> for ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
-        todo!()
+        match self {
+            ApiError::UnprocessableEntity(e) => {
+                (StatusCode::BAD_REQUEST, e.to_string()).into_response()
+            }
+            ApiError::InternalServerError(e) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+            }
+        }
     }
 }

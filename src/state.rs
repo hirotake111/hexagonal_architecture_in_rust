@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::repository::AuthorRepository;
+use crate::service::AuthorService;
 
 #[derive(Debug, Clone)]
 /// The application state available to all request handlers.
-pub struct AppState<AR: AuthorRepository> {
-    pub author_repo: Arc<AR>,
+pub struct AppState<AS: AuthorService> {
+    pub author_service: Arc<AS>,
 }

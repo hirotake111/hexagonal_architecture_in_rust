@@ -3,7 +3,12 @@ use std::{env, sync::Arc};
 use anyhow::Context;
 use axum::routing::post;
 use dotenvy::dotenv;
-use hexagonal_architecture_in_rust::{config, handler, repository::Postgres, state::AppState};
+use hexagonal_architecture_in_rust::{
+    config, handler,
+    repository::Postgres,
+    service::{EmailClient, Prometheus, Service},
+    state::AppState,
+};
 use tokio::net::TcpListener;
 
 #[tokio::main]
@@ -21,8 +26,11 @@ async fn main() -> anyhow::Result<()> {
     let database_url =
         env::var("DATABASE_URL").expect("Expected environment variable DATABASE_URL");
     let postgres = Postgres::new(&database_url).await?;
+    let metrics = Prometheus {};
+    let email_client = EmailClient {};
+    let author_service = Service::new(postgres, metrics, email_client);
     let app_state = AppState {
-        author_repo: Arc::new(postgres),
+        author_service: Arc::new(author_service),
     };
     let router = axum::Router::new()
         .route("/authors", post(handler::crate_author))
