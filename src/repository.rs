@@ -84,3 +84,21 @@ async fn save_author(
     tx.execute(query).await?;
     Ok(id)
 }
+
+#[cfg(test)]
+mod tests {
+
+    use crate::domain::{AuthorName, CreateAuthorRequest};
+
+    use super::{AuthorRepository, Postgres};
+
+    #[tokio::test]
+    async fn test_create_author() -> anyhow::Result<()> {
+        let sut = Postgres::new("postgres://postgres:supersecret@localhost:5432/postgres").await?;
+        let author_name = AuthorName::new("alice")?;
+        let req = CreateAuthorRequest::new(author_name);
+        let result = sut.create_author(&req).await?;
+        assert_eq!(result.name(), &AuthorName::new("alice")?);
+        Ok(())
+    }
+}

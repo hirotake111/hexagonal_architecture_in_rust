@@ -80,6 +80,7 @@ pub async fn crate_author<AS: AuthorService>(
 #[cfg(test)]
 mod tests {
     use anyhow::anyhow;
+    use std::ops::DerefMut;
     use std::{mem, sync::Arc};
     use tokio::sync::Mutex;
 
