@@ -4,7 +4,6 @@ use crate::{
     domain::{Author, CreateAuthorError, CreateAuthorRequest},
     repository::AuthorRepository,
 };
-
 /// `AuthorMetrics` describes an aggregator of author-related metrics, such as a time-series
 /// database
 pub trait AuthorMetrics: Send + Sync + Clone + 'static {
@@ -18,13 +17,9 @@ pub trait AuthorMetrics: Send + Sync + Clone + 'static {
 #[derive(Debug, Clone)]
 pub struct Prometheus;
 impl AuthorMetrics for Prometheus {
-    async fn record_creation_success(&self) -> () {
-        ()
-    }
+    async fn record_creation_success(&self) {}
 
-    async fn record_creation_failure(&self) -> () {
-        ()
-    }
+    async fn record_creation_failure(&self) {}
 }
 
 /// `AuthorNotifier` triggers notification to authors
@@ -35,9 +30,7 @@ pub trait AuthorNotifier: Send + Sync + Clone + 'static {
 #[derive(Debug, Clone)]
 pub struct EmailClient;
 impl AuthorNotifier for EmailClient {
-    async fn author_created(&self, _author: &Author) -> () {
-        ()
-    }
+    async fn author_created(&self, _author: &Author) {}
 }
 
 pub trait AuthorService: Clone + Send + Sync + 'static {
@@ -97,5 +90,68 @@ where
             self.notifier.author_created(result.as_ref().unwrap()).await;
         }
         result
+    }
+}
+
+mod tests {
+
+    use uuid::Uuid;
+
+    use crate::{
+        domain::{Author, AuthorName},
+        service::*,
+    };
+
+    #[derive(Debug, Clone)]
+    #[allow(dead_code)]
+    struct MockRepository {
+        value: Author,
+    }
+    impl MockRepository {
+        fn new(author: Author) -> Self {
+            Self { value: author }
+        }
+        fn set(&mut self, author: Author) {
+            self.value = author;
+        }
+        fn get(&self) -> Author {
+            self.value.clone()
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    struct MockMetrics {}
+    impl AuthorMetrics for MockMetrics {
+        async fn record_creation_success(&self) {}
+
+        async fn record_creation_failure(&self) {}
+    }
+
+    impl AuthorRepository for MockRepository {
+        async fn create_author(
+            &self,
+            _req: &CreateAuthorRequest,
+        ) -> Result<Author, CreateAuthorError> {
+            Ok(self.get())
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    struct MockNotifier {}
+    impl AuthorNotifier for MockNotifier {
+        async fn author_created(&self, _author: &Author) {}
+    }
+
+    #[tokio::test]
+    async fn test_create_author() {
+        let id = Uuid::new_v4();
+        let author = Author::new(id, AuthorName::new("alice").unwrap());
+        let repo = MockRepository::new(author.clone());
+        let metrics = MockMetrics {};
+        let notifier = MockNotifier {};
+        let sut = Service::new(repo, metrics, notifier);
+        let req = CreateAuthorRequest::new(AuthorName::new("bob").unwrap());
+        let result = sut.create_author(&req).await.unwrap();
+        assert_eq!(result, author);
     }
 }

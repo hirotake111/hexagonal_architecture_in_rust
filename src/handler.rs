@@ -76,33 +76,3 @@ pub async fn crate_author<AS: AuthorService>(
             ApiSuccess::<CreateAuthorResponseData>::new(StatusCode::CREATED, author.into())
         })
 }
-
-#[cfg(test)]
-mod tests {
-    use anyhow::anyhow;
-    use std::ops::DerefMut;
-    use std::{mem, sync::Arc};
-    use tokio::sync::Mutex;
-
-    use crate::{
-        domain::{Author, CreateAuthorError, CreateAuthorRequest},
-        repository::AuthorRepository,
-    };
-
-    #[derive(Clone)]
-    struct MockAuthorRepository {
-        create_author_result: Arc<Mutex<Result<Author, CreateAuthorError>>>,
-    }
-
-    impl AuthorRepository for MockAuthorRepository {
-        async fn create_author(
-            &self,
-            _: &CreateAuthorRequest,
-        ) -> Result<Author, CreateAuthorError> {
-            let mut guard = self.create_author_result.lock().await;
-            let mut result = Err(CreateAuthorError::Unknown(anyhow!("substitute error")));
-            mem::swap(guard.deref_mut(), &mut result);
-            result
-        }
-    }
-}
