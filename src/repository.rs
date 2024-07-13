@@ -4,7 +4,7 @@ use anyhow::{anyhow, Context};
 use sqlx::Executor;
 use uuid::Uuid;
 
-use crate::domain::{Author, AuthorName, CreateAuthorError, CreateAuthorRequest};
+use crate::domain;
 
 /// `AuthorRepository` represents a store of author data
 pub trait AuthorRepository: Clone + Send + Sync + 'static {
@@ -15,8 +15,8 @@ pub trait AuthorRepository: Clone + Send + Sync + 'static {
     /// - MUST return [CreateAuthorError::Duplicate] if an [Author] with the same name [AuthorName] already exists.
     fn create_author(
         &self,
-        req: &CreateAuthorRequest,
-    ) -> impl Future<Output = Result<Author, CreateAuthorError>> + Send;
+        req: &domain::CreateAuthorRequest,
+    ) -> impl Future<Output = Result<domain::Author, domain::CreateAuthorError>> + Send;
 }
 
 #[derive(Debug, Clone)]
@@ -32,10 +32,28 @@ impl Postgres {
             .await?;
         Ok(Self { pool })
     }
+
+    #[cfg(test)]
+    async fn delete_author(&self, req: &domain::DeleteAuthorRequest) -> anyhow::Result<()> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .context("failed to start SQLite transaction")?;
+        let query = sqlx::query!("DELETE FROM authors WHERE id = $1", req.id());
+        tx.execute(query).await?;
+        tx.commit()
+            .await
+            .context("failed to commit PostgreSQL transaction")?;
+        Ok(())
+    }
 }
 
 impl AuthorRepository for Postgres {
-    async fn create_author(&self, req: &CreateAuthorRequest) -> Result<Author, CreateAuthorError> {
+    async fn create_author(
+        &self,
+        req: &domain::CreateAuthorRequest,
+    ) -> Result<domain::Author, domain::CreateAuthorError> {
         let mut tx = self
             .pool
             .begin()
@@ -43,7 +61,7 @@ impl AuthorRepository for Postgres {
             .context("failed to start SQLite transaction")?;
         let author_id = save_author(&mut tx, req.name()).await.map_err(|e| {
             if is_unique_constraint_violation(&e) {
-                CreateAuthorError::Duplicate {
+                domain::CreateAuthorError::Duplicate {
                     name: req.name().clone(),
                 }
             } else {
@@ -56,7 +74,7 @@ impl AuthorRepository for Postgres {
         tx.commit()
             .await
             .context("failed to commit PostgreSQL transaction")?;
-        Ok(Author::new(author_id, req.name().clone()))
+        Ok(domain::Author::new(author_id, req.name().clone()))
     }
 }
 
@@ -73,7 +91,7 @@ fn is_unique_constraint_violation(err: &sqlx::Error) -> bool {
 
 async fn save_author(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    name: &AuthorName,
+    name: &domain::AuthorName,
 ) -> Result<Uuid, sqlx::Error> {
     let id = Uuid::new_v4();
     let query = sqlx::query!(
@@ -88,7 +106,7 @@ async fn save_author(
 #[cfg(test)]
 mod tests {
 
-    use crate::domain::{AuthorName, CreateAuthorRequest};
+    use crate::domain::{AuthorName, CreateAuthorRequest, DeleteAuthorRequest};
 
     use super::{AuthorRepository, Postgres};
 
@@ -99,6 +117,8 @@ mod tests {
         let req = CreateAuthorRequest::new(author_name);
         let result = sut.create_author(&req).await?;
         assert_eq!(result.name(), &AuthorName::new("alice")?);
+        let req = DeleteAuthorRequest::new(*result.id());
+        sut.delete_author(&req).await?;
         Ok(())
     }
 }

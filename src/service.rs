@@ -93,8 +93,10 @@ where
     }
 }
 
+#[cfg(test)]
 mod tests {
 
+    use anyhow::anyhow;
     use uuid::Uuid;
 
     use crate::{
@@ -103,19 +105,19 @@ mod tests {
     };
 
     #[derive(Debug, Clone)]
-    #[allow(dead_code)]
     struct MockRepository {
-        value: Author,
+        value: Option<Author>,
     }
     impl MockRepository {
-        fn new(author: Author) -> Self {
-            Self { value: author }
+        fn new(value: Option<Author>) -> Self {
+            Self { value }
         }
-        fn set(&mut self, author: Author) {
-            self.value = author;
-        }
-        fn get(&self) -> Author {
-            self.value.clone()
+        fn get(&self) -> Result<Author, CreateAuthorError> {
+            if let Some(author) = &self.value {
+                Ok(author.clone())
+            } else {
+                Err(CreateAuthorError::Unknown(anyhow!("asdf")))
+            }
         }
     }
 
@@ -132,7 +134,7 @@ mod tests {
             &self,
             _req: &CreateAuthorRequest,
         ) -> Result<Author, CreateAuthorError> {
-            Ok(self.get())
+            self.get()
         }
     }
 
@@ -146,7 +148,7 @@ mod tests {
     async fn test_create_author() {
         let id = Uuid::new_v4();
         let author = Author::new(id, AuthorName::new("alice").unwrap());
-        let repo = MockRepository::new(author.clone());
+        let repo = MockRepository::new(Some(author.clone()));
         let metrics = MockMetrics {};
         let notifier = MockNotifier {};
         let sut = Service::new(repo, metrics, notifier);

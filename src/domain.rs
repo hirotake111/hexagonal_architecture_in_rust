@@ -76,6 +76,19 @@ impl CreateAuthorRequest {
     }
 }
 
+pub struct DeleteAuthorRequest {
+    id: Uuid,
+}
+
+impl DeleteAuthorRequest {
+    pub fn new(id: Uuid) -> Self {
+        Self { id }
+    }
+    pub fn id(&self) -> &Uuid {
+        &self.id
+    }
+}
+
 pub enum ApiError {
     InternalServerError(String),
     UnprocessableEntity(String),
